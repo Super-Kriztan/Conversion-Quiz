@@ -28,6 +28,7 @@ h2 {
 label {
   display: block;
   margin: 6px 0;
+  cursor: pointer;
 }
 
 input[type="radio"] {
@@ -42,6 +43,7 @@ button {
   border-radius: 6px;
   cursor: pointer;
   margin-top: 15px;
+  font-size: 16px;
 }
 
 button:hover {
@@ -53,22 +55,30 @@ button:hover {
   background: #e8f0ff;
   padding: 12px;
   border-radius: 8px;
+  text-align: center;
 }
 
 .correct {
-  color: green;
+  color: limegreen;
+  font-weight: bold;
 }
 
 .wrong {
   color: red;
+  font-weight: bold;
+}
+
+.feedback {
+  margin-top: 8px;
+  font-size: 14px;
 }
 
 .score-img {
   display: block;
   margin: 15px auto;
-  width: 200px;        
-  height: 200px;       
-  object-fit: cover;   
-  border-radius: 12px; 
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
   box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
