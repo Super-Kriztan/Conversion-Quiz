@@ -1,15 +1,21 @@
+// Shuffle 
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+// TEMPERATURE HEAT QUIZ
 const questions = [
-  //  Celsius to Fahrenheit
+  // Celsius to Fahrenheit
   { question: "Convert 0°C to Fahrenheit.", choices: ["32°F", "0°F", "50°F", "100°F"], correct: "32°F" },
   { question: "Convert 25°C to Fahrenheit.", choices: ["77°F", "80°F", "70°F", "90°F"], correct: "77°F" },
   { question: "Convert 100°C to Fahrenheit.", choices: ["212°F", "200°F", "180°F", "220°F"], correct: "212°F" },
 
-  //  Fahrenheit to Celsius
+  // Fahrenheit to Celsius
   { question: "Convert 32°F to Celsius.", choices: ["0°C", "10°C", "5°C", "-5°C"], correct: "0°C" },
   { question: "Convert 77°F to Celsius.", choices: ["25°C", "30°C", "20°C", "15°C"], correct: "25°C" },
   { question: "Convert 98.6°F to Celsius.", choices: ["37°C", "40°C", "35°C", "30°C"], correct: "37°C" },
 
-  //  Celsius to Kelvin
+  // Celsius to Kelvin
   { question: "Convert 0°C to Kelvin.", choices: ["273.15 K", "250 K", "300 K", "100 K"], correct: "273.15 K" },
   { question: "Convert 25°C to Kelvin.", choices: ["298.15 K", "295 K", "300 K", "280 K"], correct: "298.15 K" },
   { question: "Convert 100°C to Kelvin.", choices: ["373.15 K", "350 K", "400 K", "360 K"], correct: "373.15 K" },
@@ -41,13 +47,8 @@ const questions = [
   { question: "Why does water heat slower than metal?", choices: ["Higher specific heat", "Lower specific heat", "Same specific heat", "No relation"], correct: "Higher specific heat" }
 ];
 
-// Shuffle helper
-function shuffle(array) {
-  return array.sort(() => Math.random() - 0.5);
-}
-
-// Select 10 random questions
-const quizQuestions = shuffle(questions).slice(0, 10);
+// 10 random questions
+let quizQuestions = shuffle(questions).slice(0, 10);
 
 // Generate quiz
 function generateQuiz() {
@@ -57,21 +58,21 @@ function generateQuiz() {
   quizQuestions.forEach((q, index) => {
     const div = document.createElement("div");
     div.classList.add("question");
-
     div.innerHTML = `<h4>${index + 1}. ${q.question}</h4>`;
-    const shuffledChoices = shuffle([...q.choices]);
 
+    const shuffledChoices = shuffle([...q.choices]);
     shuffledChoices.forEach(choice => {
       div.innerHTML += `
-        <label><input type="radio" name="q${index}" value="${choice}"> ${choice}</label>
+        <label>
+          <input type="radio" name="q${index}" value="${choice}"> ${choice}
+        </label>
       `;
     });
-
     quizForm.appendChild(div);
   });
 }
 
-// Evaluate answers
+// Check answers and lock inputs
 function checkAnswers() {
   let score = 0;
 
@@ -80,19 +81,13 @@ function checkAnswers() {
     const questionDiv = document.querySelectorAll(".question")[index];
     const labels = questionDiv.querySelectorAll("label");
 
-    // Clear previous styles
-    labels.forEach(label => {
-      label.style.color = "";
-      label.style.fontWeight = "";
-    });
-
-    // Remove previous message
+    labels.forEach(label => label.classList.remove("correct", "wrong"));
     const oldMsg = questionDiv.querySelector(".correct-answer-msg");
     if (oldMsg) oldMsg.remove();
 
     if (!selected) return;
 
-    let selectedValue = selected.value.trim();
+    const selectedValue = selected.value.trim();
 
     if (selectedValue === q.correct) {
       score++;
@@ -100,14 +95,13 @@ function checkAnswers() {
     } else {
       selected.parentElement.classList.add("wrong");
 
-      // Highlight correct answer
       labels.forEach(label => {
-        if (label.textContent.trim().includes(q.correct)) {
+        const input = label.querySelector("input");
+        if (input && input.value.trim() === q.correct) {
           label.classList.add("correct");
         }
       });
 
-      // Show correct answer text
       const correctMsg = document.createElement("p");
       correctMsg.classList.add("correct-answer-msg");
       correctMsg.innerHTML = `✅ Correct Answer: <b>${q.correct}</b>`;
@@ -115,23 +109,27 @@ function checkAnswers() {
     }
   });
 
+  // Disable ALL radio buttons (even unanswered ones)
+  const allOptions = document.querySelectorAll('input[type="radio"]');
+  allOptions.forEach(opt => (opt.disabled = true));
+
+  // Show results
   let message = "";
   let image = "";
 
-if (score <= 3) {
-  message = "😢 Low score. Try again!";
-  image = "image/sad.jpg"; // ✅ fixed filename
-} else if (score <= 5) {
-  message = "😐 You’ll do better next time!";
-  image = "image/half.jpg";
-} else if (score <= 9) {
-  message = "🔥 You passed!";
-  image = "image/moderate.jpg";
-} else {
-  message = "🏆 Perfect score!";
-  image = "image/perfect.jpg";
-}
-
+  if (score <= 3) {
+    message = "😢 Low score. Try again!";
+    image = "image/sad.jpg";
+  } else if (score <= 5) {
+    message = "😐 You’ll do better next time!";
+    image = "image/half.jpg";
+  } else if (score <= 9) {
+    message = "🔥 You passed!";
+    image = "image/moderate.jpg";
+  } else {
+    message = "🏆 Perfect score!";
+    image = "image/perfect.jpg";
+  }
 
   document.getElementById("result").innerHTML = `
     <h3>Your Score: ${score} / ${quizQuestions.length}</h3>
@@ -142,7 +140,9 @@ if (score <= 3) {
   `;
 }
 
+// Restart quiz
 function restartQuiz() {
+  quizQuestions = shuffle(questions).slice(0, 10);
   generateQuiz();
   document.getElementById("result").innerHTML = "";
 }
