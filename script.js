@@ -62,6 +62,7 @@ function generateQuiz() {
     div.id = "question-" + i;
     div.innerHTML = `<h4>${i + 1}. ${q.question}</h4>`;
 
+    // Choices
     shuffle([...q.choices]).forEach(choice => {
       div.innerHTML += `
         <label>
@@ -69,9 +70,12 @@ function generateQuiz() {
         </label>
       `;
     });
+
+    // Hidden correct answer text (will appear after submit)
+    div.innerHTML += `<p class="correct-answer" style="display:none; color:limegreen; font-weight:bold;"></p>`;
     quizForm.appendChild(div);
 
-    // Progress tracker box 
+    // Progress tracker box
     const box = document.createElement("div");
     box.classList.add("progress-box");
     box.id = "box-" + i;
@@ -80,6 +84,7 @@ function generateQuiz() {
       <div class="box-bar"></div>
     `;
 
+    // Scroll when box clicked
     box.onclick = function () {
       const questionEl = document.getElementById("question-" + i);
       questionEl.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -91,30 +96,44 @@ function generateQuiz() {
     tracker.appendChild(box);
   });
 
+  // When user selects an answer (only updates blue bar)
   quizForm.onchange = function (event) {
-    if (event.target.type === "radio") {
-      const index = parseInt(event.target.name.replace("q", ""));
-      const box = document.getElementById("box-" + index);
-      box.classList.add("answered-border");
-    }
-  };
+  if (event.target.type === "radio") {
+    const index = parseInt(event.target.name.replace("q", ""));
+    const box = document.getElementById("box-" + index);
+    const bar = box.querySelector(".box-bar");
+
+    // remove previous selection color if any
+    bar.classList.remove("bar-selected");
+
+    // add blue fill for selection
+    bar.classList.add("bar-selected");
+  }
+};
 }
 
+
 // Check answers
-function checkAnswers() {
+async function checkAnswers() {
   const unanswered = [];
   quizQuestions.forEach((_, i) => {
     const selected = document.querySelector(`input[name="q${i}"]:checked`);
     if (!selected) unanswered.push(i + 1);
   });
 
-  if (unanswered.length > 0) {
-    if (!confirm(`You haven't answered question${unanswered.length > 1 ? "s" : ""}: ${unanswered.join(", ")}.\n\nAre you sure you want to submit?`)) return;
-  } else {
-    if (!confirm("Are you sure you want to submit your answers?")) return;
-  }
+ let proceed = true;
+
+if (unanswered.length > 0) {
+  proceed = await showConfirmation(`You haven't answered question${unanswered.length > 1 ? "s" : ""}: ${unanswered.join(", ")}.\n\nAre you sure you want to submit?`);
+} else {
+  proceed = await showConfirmation("Are you sure you want to submit your answers?");
+}
+
+if (!proceed) return;
+
 
   let score = 0;
+
   quizQuestions.forEach((q, i) => {
     const selected = document.querySelector(`input[name="q${i}"]:checked`);
     const questionDiv = document.getElementById("question-" + i);
@@ -122,31 +141,49 @@ function checkAnswers() {
     const box = document.getElementById("box-" + i);
     const bar = box.querySelector(".box-bar");
 
+    // Reset visual classes
+    bar.classList.remove("bar-selected", "bar-correct", "bar-wrong");
+
     labels.forEach(label => label.classList.remove("correct", "wrong"));
 
-    if (selected && selected.value.trim() === q.correct) {
-      score++;
-      selected.parentElement.classList.add("correct");
-      bar.classList.add("bar-correct");
-    } else {
-      if (selected) selected.parentElement.classList.add("wrong");
-      bar.classList.add("bar-wrong");
+    if (selected) {
+      // keep the user's selection visible (radio remains checked)
+      selected.checked = true;
 
-      // show correct answer
+      if (selected.value.trim() === q.correct) {
+        // ✅ Correct
+        score++;
+        selected.parentElement.classList.add("correct");
+        bar.classList.add("bar-correct");
+      } else {
+        // ❌ Wrong
+        selected.parentElement.classList.add("wrong");
+        bar.classList.add("bar-wrong");
+
+        // Highlight correct one in green too
+        labels.forEach(label => {
+          const input = label.querySelector("input");
+          if (input.value.trim() === q.correct) label.classList.add("correct");
+        });
+      }
+    } else {
+      // Unanswered question
+      bar.style.background = "#ddd";
+      // Highlight correct answer in green
       labels.forEach(label => {
         const input = label.querySelector("input");
-        if (input && input.value.trim() === q.correct) label.classList.add("correct");
+        if (input.value.trim() === q.correct) label.classList.add("correct");
       });
     }
 
+    // Disable all options so user can’t change answers after submitting
     labels.forEach(label => {
       const input = label.querySelector("input");
       if (input) input.disabled = true;
     });
   });
 
-  document.querySelectorAll('input[type="radio"]').forEach(opt => (opt.disabled = true));
-
+  // Final score display
   let message = "", image = "";
   if (score <= 3) {
     message = "😢 Low score. Try again!";
@@ -168,6 +205,115 @@ function checkAnswers() {
     <img src="${image}" class="score-img" alt="Result" onerror="this.style.display='none';">
     <br><button onclick="restartQuiz()">Try Again</button>
   `;
+  const resultEl = document.getElementById("result");
+      if(resultEl) {
+          resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+}
+  
+function showConfirmation(message) {
+  return new Promise((resolve) => {
+    const popup = document.getElementById("confirmationPopup");
+    const overlay = document.getElementById("confirmationOverlay");
+    const messageEl = document.getElementById("confirmationMessage");
+    const yesBtn = document.getElementById("confirmYes");
+    const noBtn = document.getElementById("confirmNo");
+
+    messageEl.textContent = message;
+    popup.style.display = "block";
+    overlay.style.display = "block";
+
+    function cleanUp() {
+      popup.style.display = "none";
+      overlay.style.display = "none";
+      yesBtn.removeEventListener("click", onYes);
+      noBtn.removeEventListener("click", onNo);
+    }
+
+    function onYes() {
+      cleanUp();
+      resolve(true);
+    }
+
+    function onNo() {
+      cleanUp();
+      resolve(false);
+    }
+
+    yesBtn.addEventListener("click", onYes);
+    noBtn.addEventListener("click", onNo);
+
+    // Close popup if overlay clicked
+    overlay.addEventListener("click", () => {
+      cleanUp();
+      resolve(false);
+    }, { once: true });
+  });
+}
+
+
+function submitQuiz() {
+  let score = 0;
+  const quizForm = document.getElementById("quizForm");
+  const boxes = document.querySelectorAll(".progress-box");
+
+  quizQuestions.forEach((q, i) => {
+  const selected = document.querySelector(`input[name="q${i}"]:checked`);
+  const questionDiv = document.getElementById("question-" + i);
+  const labels = questionDiv.querySelectorAll("label");
+  const box = document.getElementById("box-" + i);
+  const bar = box.querySelector(".box-bar");
+
+  // Remove previous classes
+  bar.classList.remove("bar-correct", "bar-wrong");
+
+  // Reset label colors
+  labels.forEach(label => {
+    label.style.color = "black";
+    label.style.fontWeight = "normal";
+  });
+
+  if (selected) {
+    if (selected.value === q.correct) {
+      // ✅ Correct answer
+      selected.parentElement.style.color = "limegreen";
+      selected.parentElement.style.fontWeight = "bold";
+      bar.classList.add("bar-correct"); // green
+    } else {
+      // ❌ Wrong answer
+      selected.parentElement.style.color = "red";
+      selected.parentElement.style.fontWeight = "bold";
+      bar.classList.add("bar-wrong"); // red
+
+      // Highlight correct answer
+      labels.forEach(label => {
+        const input = label.querySelector("input");
+        if (input.value === q.correct) {
+          label.style.color = "limegreen";
+          label.style.fontWeight = "bold";
+        }
+      });
+    }
+  } else {
+    // unanswered, keep default
+    bar.style.background = "#ddd";
+  }
+
+  // Show correct answer text
+  const correctAnswer = questionDiv.querySelector(".correct-answer");
+  correctAnswer.style.display = "block";
+  correctAnswer.textContent = `✔ Correct Answer: ${q.correct}`;
+
+  // Disable all radio buttons after submission
+  labels.forEach(label => {
+    const input = label.querySelector("input");
+    if (input) input.disabled = true;
+  });
+});
+
+  // Display score result image (if you already have this part)
+  showScoreImage(score);
 }
 
 function restartQuiz() {
@@ -179,3 +325,27 @@ function restartQuiz() {
 
 window.onload = generateQuiz;
 document.getElementById("submitBtn").addEventListener("click", checkAnswers);
+
+// 🌗 DARK MODE TOGGLE
+const toggle = document.getElementById("darkModeToggle");
+const modeLabel = document.getElementById("modeLabel");
+
+// Load saved preference
+if (localStorage.getItem("theme") === "dark") {
+  document.body.classList.add("dark-mode");
+  toggle.checked = true;
+  modeLabel.textContent = "🌙 Dark Mode";
+}
+
+// Listen for toggle change
+toggle.addEventListener("change", () => {
+  if (toggle.checked) {
+    document.body.classList.add("dark-mode");
+    localStorage.setItem("theme", "dark");
+    modeLabel.textContent = "🌙 Dark Mode";
+  } else {
+    document.body.classList.remove("dark-mode");
+    localStorage.setItem("theme", "light");
+    modeLabel.textContent = "🌞 Light Mode";
+  }
+});
