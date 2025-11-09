@@ -1,5 +1,5 @@
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Times New Roman', Times, serif, sans-serif;
   background-color: #eef5ff;
   padding: 20px;
 }
@@ -77,8 +77,8 @@ button:hover {
 
 .tracker {
   position: fixed;
-  top: 30%;       
-  right: 40px;     
+  top: 35%; /* slightly lower to leave room for toggle */
+  right: 40px;
   transform: translateY(-50%);
   display: grid;
   grid-template-columns: repeat(5, 45px);
@@ -194,11 +194,14 @@ body.dark-mode .box-number {
 }
 
 .theme-toggle {
+  position: fixed;
+  top: 20%; 
+  right: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 15px;
   gap: 10px;
+  z-index: 1001; 
 }
 
 .switch {
@@ -213,6 +216,7 @@ body.dark-mode .box-number {
   width: 0;
   height: 0;
 }
+
 
 .slider {
   position: absolute;
@@ -273,6 +277,7 @@ body.dark-mode .tracker {
   background: rgba(40, 40, 60, 0.9);
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
+
 
 @media (max-width: 700px) {
   .tracker {
